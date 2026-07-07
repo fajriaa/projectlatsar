@@ -1,15 +1,74 @@
 {% extends "base.html" %}
+{% block breadcrumb %}
+  <span>akuisisi</span><span class="sep">/</span>
+  <span>laporan</span><span class="sep">/</span>
+  <span class="current">{% if laporan %}edit{% else %}buat-baru{% endif %}</span>
+{% endblock %}
+{% block topactions %}
+  <a href="{{ url_for('list_laporan') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i>Kembali
+  </a>
+{% endblock %}
 {% block content %}
-<div class="card shadow-soft">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <div>
-      <h5 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i> Form Laporan Akuisisi</h5>
-      <small class="muted-small">Isi data laporan dengan lengkap. Gunakan tombol tambah untuk baris dinamis.</small>
-    </div>
-    <div>
-      <a href="{{ url_for('list_laporan') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Kembali</a>
-    </div>
+<style>
+  .form-hero {
+    padding: 22px 24px;
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(500px 200px at 15% 20%, rgba(74,222,128,.10), transparent 60%),
+      linear-gradient(180deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border);
+    margin-bottom: 22px;
+    display: flex; align-items: center; gap: 16px; justify-content: space-between; flex-wrap: wrap;
+  }
+  .form-hero h4 { font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; margin: 0 0 4px 0; letter-spacing: -.01em; }
+  .form-hero .eyebrow {
+    display:inline-flex; align-items:center; gap:6px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--accent-2); margin-bottom: 6px;
+  }
+  .form-hero .eyebrow::before { content: ""; width: 20px; height: 1px; background: var(--accent-2); }
+  .form-hero p { color: var(--text-muted); margin: 0; font-size: 13.5px; max-width: 640px; }
+  .card .table th {
+    background: rgba(255,255,255,.015) !important;
+    color: var(--text-dim);
+    font-weight: 500;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .card .table td .form-control.border-0 { background: transparent; border: 1px solid transparent !important; }
+  .card .table td .form-control.border-0:focus {
+    background: rgba(255,255,255,.03);
+    border-color: rgba(74,222,128,.4) !important;
+    box-shadow: 0 0 0 3px rgba(74,222,128,.10);
+  }
+  .foto-item .btn { border-radius: 8px; }
+  code { color: #86efac; background: rgba(74,222,128,.10); padding: 1px 6px; border-radius: 4px; }
+  .form-submit-bar {
+    position: sticky; bottom: 12px; z-index: 5;
+    margin-top: 24px;
+    padding: 14px 18px;
+    background: linear-gradient(180deg, rgba(19,26,41,.85), rgba(15,20,32,.92));
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    display: flex; gap: 10px; align-items: center; justify-content: space-between;
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+  }
+  .form-submit-bar .hint { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); }
+</style>
+
+<div class="form-hero">
+  <div>
+    <div class="eyebrow">Digital Forensic Report</div>
+    <h4>{% if laporan %}<i class="bi bi-pencil-square me-2" style="color:var(--accent-2)"></i>Edit Laporan Akuisisi{% else %}<i class="bi bi-file-earmark-plus me-2" style="color:var(--accent)"></i>Form Laporan Akuisisi{% endif %}</h4>
+    <p>Isi data laporan dengan lengkap. Gunakan tombol <em>+ Tambah</em> untuk baris dinamis. Nomor laporan otomatis diset saat disimpan.</p>
   </div>
+</div>
+
+<div class="card shadow-soft">
   <div class="card-body">
     <form method="post" enctype="multipart/form-data">
       <div class="row g-3">
@@ -508,9 +567,12 @@
         </div>
       </div>
 
-      <div class="mt-4 d-flex gap-2">
-        <button class="btn btn-primary">Simpan</button>
-        <a href="{{ url_for('list_laporan') }}" class="btn btn-secondary">Kembali</a>
+      <div class="form-submit-bar">
+        <span class="hint"><i class="bi bi-info-circle me-1"></i>Pastikan seluruh data terisi sebelum menyimpan</span>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('list_laporan') }}" class="btn btn-secondary"><i class="bi bi-x-lg"></i>Batal</a>
+          <button class="btn btn-primary"><i class="bi bi-check2-circle"></i>Simpan Laporan</button>
+        </div>
       </div>
     </form>
   </div>
