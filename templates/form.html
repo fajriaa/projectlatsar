@@ -1,0 +1,1089 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-soft">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <div>
+      <h5 class="mb-0"><i class="bi bi-file-earmark-plus me-2"></i> Form Laporan Akuisisi</h5>
+      <small class="muted-small">Isi data laporan dengan lengkap. Gunakan tombol tambah untuk baris dinamis.</small>
+    </div>
+    <div>
+      <a href="{{ url_for('list_laporan') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Kembali</a>
+    </div>
+  </div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Nomor Laporan *</label>
+          <div>
+            <input id="nomor_laporan_input" name="nomor_laporan" class="form-control" placeholder="(akan diisi otomatis saat disimpan)" {% if not laporan %}readonly{% endif %} value="{{ laporan.nomor_laporan if laporan else '' }}" />
+          </div>
+          <div class="mt-2 d-flex gap-2 align-items-center">
+            {% if not laporan %}
+            <input id="no_peralatan_input" name="no_peralatan" type="number" min="0" class="form-control" style="max-width:140px;" placeholder="No. Peralatan (isi jika ingin override)" />
+            <small class="muted-small">Kode jenis otomatis diambil dari <em>Jenis Barang Bukti</em>. Operasi diset ke <strong>AK</strong>. Nomor akan dibuat saat Anda klik <strong>Simpan</strong>.</small>
+            {% else %}
+            <small class="muted-small">Nomor laporan dapat diubah. Pastikan nomor yang digunakan unik.</small>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Tanggal Laporan *</label>
+          <input type="date" name="tanggal_laporan" class="form-control" required value="{{ laporan.tanggal_laporan if laporan else '' }}" />
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="draft" {% if laporan and laporan.status=='draft' %}selected{% endif %}>Draft</option>
+            <option value="final" {% if laporan and laporan.status=='final' %}selected{% endif %}>Final</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Nama Instansi</label>
+          <select name="nama_instansi" id="nama_instansi_select" class="form-select">
+            {% if laporan and laporan.nama_instansi %}
+            <option selected value="{{ laporan.nama_instansi }}">{{ laporan.nama_instansi }}</option>
+            {% else %}
+            <option value="">-- Pilih atau ketik untuk mencari --</option>
+            {% endif %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Alamat Instansi</label>
+          <input name="alamat_instansi" id="alamat_instansi" class="form-control" value="{{ laporan.alamat_instansi if laporan else '' }}" />
+        </div>
+        
+        <div class="col-md-4">
+          <label class="form-label">Tanggal Serah Terima</label>
+          <input type="date" name="tanggal_serah_terima" class="form-control" value="{{ laporan.tanggal_serah_terima if laporan else '' }}" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Komoditi</label>
+          <select name="komoditi" id="komoditi_select" class="form-select">
+            <option value="Obat" {% if laporan and laporan.komoditi=='Obat' %}selected{% endif %}>Obat</option>
+            <option value="OBA" {% if laporan and laporan.komoditi=='OBA' %}selected{% endif %}>OBA</option>
+            <option value="Kosmetik" {% if laporan and laporan.komoditi=='Kosmetik' %}selected{% endif %}>Kosmetik</option>
+            <option value="Pangan Olahan" {% if laporan and laporan.komoditi=='Pangan Olahan' %}selected{% endif %}>Pangan Olahan</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Jenis Pelanggaran</label>
+          <select name="jenis_pelanggaran" id="jenis_pelanggaran_select" class="form-select">
+            <option value="Bahan Kimia Obat" {% if laporan and laporan.jenis_pelanggaran=='Bahan Kimia Obat' %}selected{% endif %}>Bahan Kimia Obat</option>
+            <option value="Obat Obatan Tertentu" {% if laporan and laporan.jenis_pelanggaran=='Obat Obatan Tertentu' %}selected{% endif %}>Obat Obatan Tertentu</option>
+            <option value="Kosmetik Illegal" {% if laporan and laporan.jenis_pelanggaran=='Kosmetik Illegal' %}selected{% endif %}>Kosmetik Illegal</option>
+            <option value="Tanpa Kewenangan" {% if laporan and laporan.jenis_pelanggaran=='Tanpa Kewenangan' %}selected{% endif %}>Tanpa Kewenangan</option>
+            <option value="Tanpa Izin edar" {% if laporan and laporan.jenis_pelanggaran=='Tanpa Izin edar' %}selected{% endif %}>Tanpa Izin edar</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Jenis Barang Bukti</label>
+          <select name="jenis_barang_bukti" id="jenis_barang_bukti_select" class="form-select">
+            <option value="Handphone" {% if laporan and laporan.jenis_barang_bukti=='Handphone' %}selected{% endif %}>Handphone</option>
+            <option value="PC" {% if laporan and laporan.jenis_barang_bukti=='PC' %}selected{% endif %}>PC</option>
+            <option value="Laptop" {% if laporan and laporan.jenis_barang_bukti=='Laptop' %}selected{% endif %}>Laptop</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Merek/Model</label>
+          <div id="merek_container">
+                  {% set brand = '' %}
+                  {% set model_val = '' %}
+                  {% if laporan and laporan.merek_model and laporan.jenis_barang_bukti == 'Handphone' %}
+                    {% set parts = laporan.merek_model.split() %}
+                    {% if parts|length > 0 %}
+                      {% set brand = parts[0] %}
+                      {% set model_val = parts[1:]|join(' ') %}
+                    {% endif %}
+                  {% endif %}
+                  <input id="merek_free_input" class="form-control" placeholder="Merek / model (mis. Samsung Galaxy A12)" value="{{ laporan.merek_model if laporan and laporan.jenis_barang_bukti != 'Handphone' else '' }}" />
+                  <div id="merek_handphone" class="d-none" style="margin-top:0.25rem;">
+                    {% if brand %}
+                      <select id="merek_brand_select" class="form-select">
+                        <option selected value="{{ brand }}">{{ brand }}</option>
+                        <option value="Samsung">Samsung</option>
+                        <option value="Iphone">Iphone</option>
+                        <option value="Xiaomi">Xiaomi</option>
+                        <option value="Oppo">Oppo</option>
+                        <option value="Realme">Realme</option>
+                        <option value="Vivo">Vivo</option>
+                        <option value="Infinix">Infinix</option>
+                        <option value="Asus">Asus</option>
+                        <option value="Poco">Poco</option>
+                        <option value="Tecno">Tecno</option>
+                        <option value="Nokia">Nokia</option>
+                        <option value="Sony">Sony</option>
+                        <option value="Google Pixel">Google Pixel</option>
+                        <option value="Huawei">Huawei</option>
+                        <option value="Honor">Honor</option>
+                        <option value="ZTE">ZTE</option>
+                        <option value="Lenovo">Lenovo</option>
+                        <option value="Motorola">Motorola</option>
+                        <option value="Advan">Advan</option>
+                        <option value="Itel">Itel</option>
+                        <option value="Nubia">Nubia</option>
+                      </select>
+                    {% else %}
+                      <select id="merek_brand_select" class="form-select">
+                        <option value="Samsung">Samsung</option>
+                        <option value="Iphone">Iphone</option>
+                        <option value="Xiaomi">Xiaomi</option>
+                        <option value="Oppo">Oppo</option>
+                        <option value="Realme">Realme</option>
+                        <option value="Vivo">Vivo</option>
+                        <option value="Infinix">Infinix</option>
+                        <option value="Asus">Asus</option>
+                        <option value="Poco">Poco</option>
+                        <option value="Tecno">Tecno</option>
+                        <option value="Nokia">Nokia</option>
+                        <option value="Sony">Sony</option>
+                        <option value="Google Pixel">Google Pixel</option>
+                        <option value="Huawei">Huawei</option>
+                        <option value="Honor">Honor</option>
+                        <option value="ZTE">ZTE</option>
+                        <option value="Lenovo">Lenovo</option>
+                        <option value="Motorola">Motorola</option>
+                        <option value="Advan">Advan</option>
+                        <option value="Itel">Itel</option>
+                        <option value="Nubia">Nubia</option>
+                      </select>
+                    {% endif %}
+                    <input id="merek_model_input" class="form-control mt-2" placeholder="Model / tipe (mis. X Pro 5)" value="{{ model_val }}" />
+                  </div>
+                  <input type="hidden" name="merek_model" id="merek_model_combined" value="{{ laporan.merek_model if laporan else '' }}" />
+                </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">IMEI</label>
+          <div id="imei-container">
+            {% if laporan and laporan.imei %}
+              {% set imeis = (laporan.imei.split(',') if laporan.imei else []) %}
+              {% for im in imeis %}
+              <div class="input-group mb-2 imei-row">
+                <input name="imei" class="form-control" placeholder="Masukkan IMEI" value="{{ im.strip() }}" />
+                <button type="button" class="btn btn-outline-secondary" onclick="removeImeiRow(this)">-</button>
+              </div>
+              {% endfor %}
+            {% else %}
+            <div class="input-group mb-2 imei-row">
+              <input name="imei" class="form-control" placeholder="Masukkan IMEI" value="" />
+              <button type="button" class="btn btn-outline-secondary" onclick="removeImeiRow(this)">-</button>
+            </div>
+            {% endif %}
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="addImeiRow()">+ Tambah IMEI</button>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Keterangan Barang</label>
+          <textarea name="keterangan_barang" class="form-control" rows="2">{{ laporan.keterangan_barang if laporan else '' }}</textarea>
+        </div>
+
+        <div class="col-12">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label m-0">A. Dasar (dinamis)</label>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addDasarRow()">+ Tambah Dasar</button>
+          </div>
+          
+          <div id="dasar-container" class="vstack gap-2">
+            {% if dasar_items and dasar_items|length > 0 %}
+              {% for d in dasar_items %}
+              <div class="row g-2 dasar-row">
+                <div class="col-md-3">
+                  <select name="dasar_jenis" class="form-select" onchange="toggleDasarRowFields(this)">
+                    <option value="Surat Dinas" {% if d.jenis == 'Surat Dinas' %}selected{% endif %}>Surat Dinas</option>
+                    <option value="Surat Permohonan" {% if d.jenis == 'Surat Permohonan' %}selected{% endif %}>Surat Permohonan</option>
+                    <option value="Surat Tugas" {% if d.jenis == 'Surat Tugas' %}selected{% endif %}>Surat Tugas</option>
+                    <option value="Dokumen Lain" {% if d.jenis == 'Dokumen Lain' %}selected{% endif %}>Dokumen Lain</option>
+                  </select>
+                </div>
+                <div class="col-md-5">
+                  <input name="dasar_isi" class="form-control" placeholder="Isi nomor surat / rincian dokumen" value="{{ d.isi }}" />
+                </div>
+                <div class="col-md-2 dasar-meta {% if not (d.jenis in ['Surat Dinas','Surat Tugas','Surat Permohonan']) %}d-none{% endif %}">
+                  <input name="dasar_nomor" class="form-control" placeholder="No. surat" value="{{ d.nomor if d.nomor else '' }}" />
+                </div>
+                <div class="col-md-1 dasar-meta {% if not (d.jenis in ['Surat Dinas','Surat Tugas','Surat Permohonan']) %}d-none{% endif %}">
+                  <input type="date" name="dasar_tanggal" class="form-control" value="{{ d.tanggal if d.tanggal else '' }}" />
+                </div>
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-outline-danger w-100" onclick="removeDasarRow(this)" {% if loop.index0 == 0 %}disabled{% endif %}>X</button>
+                </div>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="row g-2 dasar-row">
+                <div class="col-md-3">
+                  <select name="dasar_jenis" class="form-select" onchange="toggleDasarRowFields(this)">
+                    <option value="Surat Dinas">Surat Dinas</option>
+                    <option value="Surat Permohonan">Surat Permohonan</option>
+                    <option value="Surat Tugas">Surat Tugas</option>
+                    <option value="Dokumen Lain">Dokumen Lain</option>
+                  </select>
+                </div>
+                <div class="col-md-5">
+                  <input name="dasar_isi" class="form-control" placeholder="Isi nomor surat / rincian dokumen" />
+                </div>
+                <div class="col-md-2 dasar-meta d-none">
+                  <input name="dasar_nomor" class="form-control" placeholder="No. surat" />
+                </div>
+                <div class="col-md-1 dasar-meta d-none">
+                  <input type="date" name="dasar_tanggal" class="form-control" />
+                </div>
+                <div class="col-md-1">
+                  <button type="button" class="btn btn-outline-danger w-100" onclick="removeDasarRow(this)" disabled>X</button>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Foto Barang Bukti (boleh lebih dari 1)</label>
+          <input type="file" name="fotos_bb" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp" />
+          {% if foto_bb_paths and foto_bb_paths|length > 0 %}
+          <div class="mt-2">
+            <small class="text-muted">Foto saat ini:</small>
+            <div class="d-flex gap-2 flex-wrap mt-1">
+              {% for p in foto_bb_paths %}
+                  <div class="d-inline-block foto-item me-1 mb-1" data-filename="{{ p }}">
+                    <a href="{{ url_for('download_upload', filename=p) }}" target="_blank" class="btn btn-sm btn-outline-secondary foto-label">Lihat</a>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-1 replace-btn" onclick="createReplacementInput('bb','{{ p }}', this)" title="Ganti">✎</button>
+                    <button type="button" class="btn btn-sm btn-danger ms-1 remove-btn" onclick="toggleRemovePhoto('bb','{{ p }}', this)" title="Hapus">✕</button>
+                  </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Foto Nilai Hash</label>
+          <input type="file" name="fotos_hash" id="fotos_hash_input" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp" />
+          {% if foto_hash_paths and foto_hash_paths|length > 0 %}
+          <div class="mt-2">
+            <small class="text-muted">Foto hash saat ini:</small>
+            <div class="d-flex gap-2 flex-wrap mt-1">
+              {% for p in foto_hash_paths %}
+                <div class="d-inline-block foto-item me-1 mb-1" data-filename="{{ p }}">
+                  <a href="{{ url_for('download_upload', filename=p) }}" target="_blank" class="btn btn-sm btn-outline-secondary foto-label">Lihat</a>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1 replace-btn" onclick="createReplacementInput('hash','{{ p }}', this)" title="Ganti">✎</button>
+                  <button type="button" class="btn btn-sm btn-danger ms-1 remove-btn" onclick="toggleRemovePhoto('hash','{{ p }}', this)" title="Hapus">✕</button>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Foto Hasil Ekstraksi</label>
+          <input type="file" name="fotos_ekstraksi" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp" />
+          {% if foto_ekstraksi_paths and foto_ekstraksi_paths|length > 0 %}
+          <div class="mt-2">
+            <small class="text-muted">Foto ekstraksi saat ini:</small>
+            <div class="d-flex gap-2 flex-wrap mt-1">
+              {% for p in foto_ekstraksi_paths %}
+                <div class="d-inline-block foto-item me-1 mb-1" data-filename="{{ p }}">
+                  <a href="{{ url_for('download_upload', filename=p) }}" target="_blank" class="btn btn-sm btn-outline-secondary foto-label">Lihat</a>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1 replace-btn" onclick="createReplacementInput('ekstraksi','{{ p }}', this)" title="Ganti">✎</button>
+                  <button type="button" class="btn btn-sm btn-danger ms-1 remove-btn" onclick="toggleRemovePhoto('ekstraksi','{{ p }}', this)" title="Hapus">✕</button>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Foto Indexing <span class="badge bg-warning text-dark">Full Screen Screenshot</span></label>
+          <small class="text-muted d-block mb-2">💡 Ambil screenshot full screen dari hasil indexing (jangan dipotong)</small>
+          <input type="file" name="fotos_indexing" id="fotos_indexing_input" class="form-control" multiple accept=".jpg,.jpeg,.png,.webp" />
+          <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="autoFillFromIndexing()">Isi otomatis dari Indexing</button>
+            <small class="text-muted ms-2">Gunakan screenshot indexing untuk mencoba isi otomatis (OCR).</small>
+          </div>
+          {% if foto_indexing_paths and foto_indexing_paths|length > 0 %}
+          <div class="mt-2">
+            <small class="text-muted">Foto indexing saat ini:</small>
+            <div class="d-flex gap-2 flex-wrap mt-1">
+              {% for p in foto_indexing_paths %}
+                <div class="d-inline-block foto-item me-1 mb-1" data-filename="{{ p }}">
+                  <a href="{{ url_for('download_upload', filename=p) }}" target="_blank" class="btn btn-sm btn-outline-secondary foto-label">Lihat</a>
+                  <button type="button" class="btn btn-sm btn-outline-secondary ms-1 replace-btn" onclick="createReplacementInput('indexing','{{ p }}', this)" title="Ganti">✎</button>
+                  <button type="button" class="btn btn-sm btn-danger ms-1 remove-btn" onclick="toggleRemovePhoto('indexing','{{ p }}', this)" title="Hapus">✕</button>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">E. Maksud dan Tujuan</label>
+          <textarea name="maksud_tujuan" class="form-control" rows="2">{{ laporan.maksud_tujuan if laporan else '' }}</textarea>
+        </div>
+        <div class="col-12">
+          <label class="form-label">F. Prosedur Akuisisi</label>
+          <div class="mb-2">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="prosedur_option" id="proc_oxygen" value="oxygen" checked onchange="applyProsedurOption()">
+              <label class="form-check-label" for="proc_oxygen">Oxygen</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="prosedur_option" id="proc_cellebrite" value="cellebrite" onchange="applyProsedurOption()">
+              <label class="form-check-label" for="proc_cellebrite">Cellebrite</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="prosedur_option" id="proc_both" value="both" onchange="applyProsedurOption()">
+              <label class="form-check-label" for="proc_both">Keduanya</label>
+            </div>
+          </div>
+          <input type="hidden" name="prosedur_akuisisi" id="prosedur_akuisisi" value="{{ laporan.prosedur_akuisisi if laporan else '' }}" />
+        </div>
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+              <div>
+                <label class="form-label mb-0 fw-semibold">G. Pelaksanaan Akuisisi</label>
+                <div class="muted-small">Isi manual atau gunakan OCR dari foto nilai hash untuk mempercepat pengisian.</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="autoFillPelaksanaanAkuisisiFromHash()">Isi otomatis dari Foto Nilai Hash</button>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-bordered mb-0 align-middle">
+                  <tbody>
+                    <tr>
+                      <th style="width: 32%;">Waktu dimulai</th>
+                      <td><input type="text" name="waktu_dimulai" class="form-control border-0 shadow-none" value="{{ laporan.waktu_dimulai if laporan else '' }}" placeholder="20/02/2026 11:21:11(UTC+7)" /></td>
+                    </tr>
+                    <tr>
+                      <th>Waktu selesai</th>
+                      <td><input type="text" name="waktu_selesai" class="form-control border-0 shadow-none" value="{{ laporan.waktu_selesai if laporan else '' }}" placeholder="20/02/2026 12:28:18(UTC+7)" /></td>
+                    </tr>
+                    <tr>
+                      <th>Tempat</th>
+                      <td><textarea name="tempat_pelaksanaan" class="form-control border-0 shadow-none" rows="2" placeholder="Laboratorium Forensik Digital ...">{{ laporan.tempat_pelaksanaan if laporan else '' }}</textarea></td>
+                    </tr>
+                    <tr>
+                      <th>Perangkat forensik digital yang digunakan</th>
+                      <td><input type="text" name="perangkat_forensik_digital" class="form-control border-0 shadow-none" value="{{ laporan.perangkat_forensik_digital if laporan else '' }}" placeholder="Cellebrite Inseyets UFED 10.7.0.181" /></td>
+                    </tr>
+                    <tr>
+                      <th>Metode Akuisisi</th>
+                      <td><input type="text" name="metode_akuisisi" class="form-control border-0 shadow-none" value="{{ laporan.metode_akuisisi if laporan else '' }}" placeholder="Full File System [ Android ADB ]" /></td>
+                    </tr>
+                    <tr>
+                      <th>Status</th>
+                      <td><input type="text" name="status_akuisisi" class="form-control border-0 shadow-none" value="{{ laporan.status_akuisisi if laporan else '' }}" placeholder="Berhasil" /></td>
+                    </tr>
+                    <tr>
+                      <th>Nama file</th>
+                      <td><textarea name="nama_file_hash" class="form-control border-0 shadow-none" rows="3" placeholder="File name: EvidenceCollection.ufdx">{{ laporan.nama_file_hash if laporan else '' }}</textarea></td>
+                    </tr>
+                    <tr>
+                      <th>Nilai Hash</th>
+                      <td>
+                        <textarea name="nilai_hash" class="form-control border-0 shadow-none" rows="5" placeholder="1. MD5 : ...&#10;2. SHA1 : ...&#10;3. SHA256 : ...">{{ laporan.nilai_hash if laporan else '' }}</textarea>
+                        <small class="text-muted d-block mt-1">Bisa diisi manual atau dihasilkan otomatis dari OCR foto hash.</small>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header">
+              <label class="form-label mb-0 fw-semibold">Hasil Akuisisi — Informasi Perangkat</label>
+              <div class="muted-small">Isi data perangkat hasil ekstraksi. Nilai ini akan masuk ke tabel Informasi Perangkat pada laporan Word.</div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-bordered mb-0 align-middle">
+                  <tbody>
+                    <tr>
+                      <th style="width: 32%;">Operasi Sistem (OS)</th>
+                      <td><input type="text" name="perangkat_os" class="form-control border-0 shadow-none" value="{{ perangkat_info.get('os', '') if perangkat_info else '' }}" placeholder="mis. Android" /></td>
+                    </tr>
+                    <tr>
+                      <th>Versi OS</th>
+                      <td><input type="text" name="perangkat_os_version" class="form-control border-0 shadow-none" value="{{ perangkat_info.get('os_version', '') if perangkat_info else '' }}" placeholder="mis. 11" /></td>
+                    </tr>
+                    <tr>
+                      <th>IMEI</th>
+                      <td><input type="text" name="perangkat_imei" class="form-control border-0 shadow-none" value="{{ perangkat_info.get('imei', '') if perangkat_info else (laporan.imei.split(',')[0].strip() if laporan and laporan.imei else '') }}" placeholder="mis. 353800108222734" /></td>
+                    </tr>
+                    <tr>
+                      <th>IMSI</th>
+                      <td><input type="text" name="perangkat_imsi" class="form-control border-0 shadow-none" value="{{ perangkat_info.get('imsi', '') if perangkat_info else '' }}" placeholder="mis. 510104262407092" /></td>
+                    </tr>
+                    <tr>
+                      <th>ICCID</th>
+                      <td>
+                        <textarea name="perangkat_iccid" class="form-control border-0 shadow-none" rows="4" placeholder="Satu ICCID per baris jika ada lebih dari satu">{{ perangkat_info.get('iccid', '') if perangkat_info else '' }}</textarea>
+                      </td>
+                    </tr>
+                    <tr>
+                      <th>MSISDN</th>
+                      <td><input type="text" name="perangkat_msisdn" class="form-control border-0 shadow-none" value="{{ perangkat_info.get('msisdn', '') if perangkat_info else '' }}" placeholder="mis. 08123456789 atau Tidak ditemukan" /></td>
+                    </tr>
+                    <tr>
+                      <th>Serial Number</th>
+                      <td><input type="text" name="perangkat_serial_number" class="form-control border-0 shadow-none" value="{{ perangkat_info.get('serial_number', '') if perangkat_info else '' }}" placeholder="mis. R58N... atau Tidak ditemukan" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header">
+              <label class="form-label mb-0 fw-semibold">H. Data yang Ditemukan</label>
+              <div class="muted-small">Isi jumlah data hasil indexing/ekstraksi. Nilai ini akan masuk ke tabel pada laporan Word.</div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-bordered mb-0 align-middle">
+                  <tbody>
+                    <tr>
+                      <th style="width: 32%;">Chats</th>
+                      <td><input type="text" name="ocr_chats" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('chats', '') if ocr_fields else '' }}" placeholder="mis. 12" /></td>
+                    </tr>
+                    <tr>
+                      <th>Contacts</th>
+                      <td><input type="text" name="ocr_contacts" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('contacts', '') if ocr_fields else '' }}" placeholder="mis. 245" /></td>
+                    </tr>
+                    <tr>
+                      <th>Installed Applications</th>
+                      <td><input type="text" name="ocr_installed_applications" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('installed_applications', '') if ocr_fields else '' }}" placeholder="mis. 87" /></td>
+                    </tr>
+                    <tr>
+                      <th>Instant Messages</th>
+                      <td><input type="text" name="ocr_instant_messages" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('instant_messages', '') if ocr_fields else '' }}" placeholder="mis. 1.234" /></td>
+                    </tr>
+                    <tr>
+                      <th>User Accounts</th>
+                      <td><input type="text" name="ocr_user_accounts" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('user_accounts', '') if ocr_fields else '' }}" placeholder="mis. 3" /></td>
+                    </tr>
+                    <tr>
+                      <th>Timeline</th>
+                      <td><input type="text" name="ocr_timeline" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('timeline', '') if ocr_fields else '' }}" placeholder="mis. 56" /></td>
+                    </tr>
+                    <tr>
+                      <th>Applications</th>
+                      <td><input type="text" name="ocr_applications" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('applications', '') if ocr_fields else '' }}" placeholder="mis. 42" /></td>
+                    </tr>
+                    <tr>
+                      <th>Archives</th>
+                      <td><input type="text" name="ocr_archives" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('archives', '') if ocr_fields else '' }}" placeholder="mis. 8" /></td>
+                    </tr>
+                    <tr>
+                      <th>Databases</th>
+                      <td><input type="text" name="ocr_databases" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('databases', '') if ocr_fields else '' }}" placeholder="mis. 15" /></td>
+                    </tr>
+                    <tr>
+                      <th>Images</th>
+                      <td><input type="text" name="ocr_images" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('images', '') if ocr_fields else '' }}" placeholder="mis. 3.210" /></td>
+                    </tr>
+                    <tr>
+                      <th>Text</th>
+                      <td><input type="text" name="ocr_text" class="form-control border-0 shadow-none" value="{{ ocr_fields.get('text', '') if ocr_fields else '' }}" placeholder="mis. 980" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="form-label">I. Kesimpulan</label>
+          <textarea name="kesimpulan" class="form-control" rows="3">{{ laporan.kesimpulan if laporan else '' }}</textarea>
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex gap-2">
+        <button class="btn btn-primary">Simpan</button>
+        <a href="{{ url_for('list_laporan') }}" class="btn btn-secondary">Kembali</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function addDasarRow() {
+    const container = document.getElementById("dasar-container");
+    const row = document.createElement("div");
+    row.className = "row g-2 dasar-row";
+    row.innerHTML = `
+      <div class="col-md-3">
+        <select name="dasar_jenis" class="form-select" onchange="toggleDasarRowFields(this)">
+          <option value="Surat Dinas">Surat Dinas</option>
+          <option value="Surat Permohonan">Surat Permohonan</option>
+          <option value="Surat Tugas">Surat Tugas</option>
+          <option value="Dokumen Lain">Dokumen Lain</option>
+        </select>
+      </div>
+      <div class="col-md-5">
+        <input name="dasar_isi" class="form-control" placeholder="Isi nomor surat / rincian dokumen" />
+      </div>
+      <div class="col-md-2 dasar-meta d-none">
+        <input name="dasar_nomor" class="form-control" placeholder="No. surat" />
+      </div>
+      <div class="col-md-1 dasar-meta d-none">
+        <input type="date" name="dasar_tanggal" class="form-control" />
+      </div>
+      <div class="col-md-1">
+        <button type="button" class="btn btn-outline-danger w-100" onclick="removeDasarRow(this)">X</button>
+      </div>
+    `;
+    container.appendChild(row);
+    // Initialize the new row by triggering toggleDasarRowFields
+    const selectEl = row.querySelector('select[name="dasar_jenis"]');
+    if (selectEl) {
+      toggleDasarRowFields(selectEl);
+    }
+  }
+
+  function removeDasarRow(btn) {
+    // prevent removing the locked first row
+    if (btn.disabled) return;
+    const allRows = document.querySelectorAll(".dasar-row");
+    if (allRows.length <= 1) {
+      // keep at least one row; clear its content instead
+      allRows[0].querySelector('input[name="dasar_isi"]').value = "";
+      return;
+    }
+    btn.closest(".dasar-row").remove();
+    // ensure first row's remove button stays disabled (locked)
+    const remaining = document.querySelectorAll('.dasar-row');
+    if (remaining.length > 0) {
+      const firstBtn = remaining[0].querySelector('button[onclick*="removeDasarRow"]');
+      if (firstBtn) firstBtn.disabled = true;
+    }
+  }
+
+  function toggleDasarRowFields(selectEl) {
+    const row = selectEl.closest('.dasar-row');
+    if (!row) return;
+    const jenis = (selectEl.value || '').trim();
+    const metaEls = row.querySelectorAll('.dasar-meta');
+    // show nomor/tanggal for these jenis
+    const showFor = ['Surat Dinas', 'Surat Tugas', 'Surat Permohonan'];
+    if (showFor.includes(jenis)) {
+      metaEls.forEach(e => e.classList.remove('d-none'));
+      // Add event listeners for nomor and tanggal changes
+      const nomorEl = row.querySelector('input[name="dasar_nomor"]');
+      const tglEl = row.querySelector('input[name="dasar_tanggal"]');
+      if (nomorEl) nomorEl.addEventListener('input', () => updateDasarComposedText(row));
+      if (tglEl) tglEl.addEventListener('change', () => updateDasarComposedText(row));
+    } else {
+      metaEls.forEach(e => e.classList.add('d-none'));
+      // clear values
+      const nomor = row.querySelector('input[name="dasar_nomor"]');
+      const tgl = row.querySelector('input[name="dasar_tanggal"]');
+      if (nomor) nomor.value = '';
+      if (tgl) tgl.value = '';
+    }
+    // if this is the first row, update composed text
+    const container = document.getElementById('dasar-container');
+    const firstRow = container && container.querySelector('.dasar-row');
+    if (firstRow === row) updateDasarComposedText(row);
+  }
+
+  // Update composed text ketika nomor atau tanggal berubah
+  function updateDasarComposedText(row) {
+    const jenisSelect = row.querySelector('select[name="dasar_jenis"]');
+    const nomorEl = row.querySelector('input[name="dasar_nomor"]');
+    const tglEl = row.querySelector('input[name="dasar_tanggal"]');
+    const isiInput = row.querySelector('input[name="dasar_isi"]');
+    
+    if (!isiInput || !jenisSelect) return;
+    
+    const jenis = (jenisSelect.value || '').trim();
+    const nomor = (nomorEl?.value || '').trim();
+    const tgl = (tglEl?.value || '').trim();
+    const namaInstansi = (document.getElementById('nama_instansi_select')?.value || '').trim();
+    const formattedDate = formatDateIndo(tgl);
+    
+    let composed = '';
+    
+    if (jenis === 'Surat Dinas') {
+      const parts = [];
+      parts.push('Surat Dinas Kepala');
+      if (namaInstansi) parts.push(namaInstansi);
+      if (nomor) parts.push(`No. ${nomor}`);
+      parts.push('Perihal Permohonan Bantuan Analisis Digital Forensik');
+      if (formattedDate) parts.push(`pada tanggal ${formattedDate}`);
+      composed = parts.join(' ').replace(/\s+/g, ' ').trim();
+    } else if (jenis === 'Surat Tugas') {
+      const parts = [];
+      parts.push('Surat Tugas Direktur Siber Obat dan Makanan');
+      if (nomor) parts.push(`No. ${nomor}`);
+      parts.push('Perihal Kegiatan Pemeriksaan Forensik Digital terhadap Barang Bukti Elektronik Kasus dari');
+      if (namaInstansi) parts.push(namaInstansi);
+      if (formattedDate) parts.push(`pada tanggal ${formattedDate}`);
+      composed = parts.join(' ').replace(/\s+/g, ' ').trim();
+    }
+    
+    if (composed) {
+      isiInput.value = composed;
+    }
+  }
+
+  function addImeiRow() {
+    const container = document.getElementById('imei-container');
+    const row = document.createElement('div');
+    row.className = 'input-group mb-2 imei-row';
+    row.innerHTML = `<input name="imei" class="form-control" placeholder="Masukkan IMEI" />
+                     <button type="button" class="btn btn-outline-secondary" onclick="removeImeiRow(this)">-</button>`;
+    container.appendChild(row);
+  }
+
+  function removeImeiRow(btn) {
+    const all = document.querySelectorAll('.imei-row');
+    if (all.length === 1) {
+      all[0].querySelector('input[name="imei"]').value = '';
+      return;
+    }
+    btn.closest('.imei-row').remove();
+  }
+
+  function applyProsedurOption() {
+    const base = [
+      '1. ISO/IEC 27037:2012 tentang Pedoman Identifikasi, Pengumpulan, Akuisisi dan',
+      '   Preservasi Bukti Digital;',
+      '2. SOP Mikro No. POM-05.03/CFM.01/SOP.01/IK.63.08 tentang Penanganan Barang Bukti',
+      '   Elektronik;',
+      '3. Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.16 tentang Instruksi Kerja Akuisisi',
+      '   Handphone'
+    ];
+    const proc = document.querySelector('input[name="prosedur_option"]:checked').value;
+    let extra = [];
+    if (proc === 'cellebrite') {
+      extra = [
+        'Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.17 tentang Instruksi Kerja Penggunaan Cellebrite UFED.',
+        'Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.23 tentang Instruksi Kerja Penggunaan Aplikasi Analisis Physical Analyzer.'
+      ];
+    } else if (proc === 'oxygen') {
+      extra = [
+        'Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.19 tentang Instruksi Kerja Penggunaan Oxygen Forensic Extractor.'
+      ];
+    } else if (proc === 'both') {
+      extra = [
+        'Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.17 tentang Instruksi Kerja Penggunaan Cellebrite UFED.',
+        'Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.23 tentang Instruksi Kerja Penggunaan Aplikasi Analisis Physical Analyzer.',
+        'Instruksi Kerja No. POM-05.03/CFM.01/SOP.01/IK.63.19 tentang Instruksi Kerja Penggunaan Oxygen Forensic Extractor.'
+      ];
+    }
+
+    // Number extra starting from 4
+    const numbered = extra.map((txt, idx) => `${idx + 4}. ${txt}`);
+    const combined = base.concat([''], numbered).join('\n');
+    document.getElementById('prosedur_akuisisi').value = combined;
+  }
+
+  // initialize
+  applyProsedurOption();
+
+  // Fetch instansi list from server API and initialize Tom Select
+  async function initInstansiSelect() {
+    const namaSelect = document.getElementById('nama_instansi_select');
+    if (!namaSelect) return;
+    try {
+      const resp = await fetch('/api/instansi');
+      const instansiData = await resp.json();
+      // populate native select as fallback
+      instansiData.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.name;
+        opt.textContent = i.name;
+        opt.setAttribute('data-alamat', i.alamat || '');
+        namaSelect.appendChild(opt);
+      });
+      console.log('fetched instansiData length:', instansiData.length);
+
+      // wait for TomSelect library then initialize
+      let attempts = 0;
+      const maxAttempts = 20;
+      const interval = setInterval(() => {
+        if (typeof TomSelect !== 'undefined') {
+          clearInterval(interval);
+          const options = instansiData.map(i => ({ value: i.name, text: i.name, alamat: i.alamat }));
+          const ts = new TomSelect(namaSelect, {
+            options: options,
+            valueField: 'value',
+            labelField: 'text',
+            searchField: ['text'],
+            allowEmptyOption: true,
+            maxOptions: 100,
+            create: false,
+            sortField: [{field: 'text', direction: 'asc'}]
+          });
+          ts.on('change', function(value) {
+            const match = instansiData.find(i => i.name === value);
+            const alamatInput = document.getElementById('alamat_instansi');
+            if (match && alamatInput) alamatInput.value = match.alamat || '';
+            // update composed text for all dasar rows when instansi changes
+            const container = document.getElementById('dasar-container');
+            const rows = container ? container.querySelectorAll('.dasar-row') : [];
+            rows.forEach(row => updateDasarComposedText(row));
+          });
+        } else {
+          attempts += 1;
+          if (attempts >= maxAttempts) clearInterval(interval);
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Failed to fetch instansi:', err);
+    }
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initInstansiSelect();
+  } else {
+    document.addEventListener('DOMContentLoaded', initInstansiSelect);
+  }
+
+  function formatDateIndo(yyyymmdd) {
+    if (!yyyymmdd) return '';
+    const parts = yyyymmdd.split('-');
+    if (parts.length !== 3) return yyyymmdd;
+    const year = parts[0];
+    const month = parseInt(parts[1], 10);
+    const day = parseInt(parts[2], 10);
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    return `${day} ${months[month - 1]} ${year}`;
+  }
+
+  // ensure initial composition after all initializers
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+      // ensure per-row fields visibility for first row
+      const container = document.getElementById('dasar-container');
+      const firstRow = container && container.querySelector('.dasar-row');
+      if (firstRow) {
+        const sel = firstRow.querySelector('select[name="dasar_jenis"]');
+        if (sel) toggleDasarRowFields(sel);
+      }
+    }, 100);
+  });
+
+  // Initialize komoditi TomSelect (searchable + typeable)
+  function initKomoditiSelect() {
+    const el = document.getElementById('komoditi_select');
+    if (!el) return;
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = setInterval(() => {
+      if (typeof TomSelect !== 'undefined') {
+        clearInterval(interval);
+        new TomSelect(el, {
+          create: false,
+          sortField: [{ field: 'text', direction: 'asc' }],
+          allowEmptyOption: true,
+          maxOptions: 100,
+        });
+      } else {
+        attempts += 1;
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }
+    }, 100);
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initKomoditiSelect();
+  } else {
+    document.addEventListener('DOMContentLoaded', initKomoditiSelect);
+  }
+  
+  // Initialize jenis pelanggaran TomSelect
+  function initJenisPelanggaranSelect() {
+    const el = document.getElementById('jenis_pelanggaran_select');
+    if (!el) return;
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = setInterval(() => {
+      if (typeof TomSelect !== 'undefined') {
+        clearInterval(interval);
+        const ts = new TomSelect(el, {
+          create: false,
+          sortField: [{ field: 'text', direction: 'asc' }],
+          allowEmptyOption: true,
+          maxOptions: 100,
+        });
+        // ensure saved value is set after TomSelect init
+        const preselectedJenis = "{{ laporan.jenis_pelanggaran if laporan else '' }}";
+        if (preselectedJenis) {
+          try { ts.setValue(preselectedJenis); } catch (e) { /* ignore */ }
+        }
+      } else {
+        attempts += 1;
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }
+    }, 100);
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initJenisPelanggaranSelect();
+  } else {
+    document.addEventListener('DOMContentLoaded', initJenisPelanggaranSelect);
+  }
+  
+  // Initialize jenis barang bukti TomSelect
+  function initJenisBarangBuktiSelect() {
+    const el = document.getElementById('jenis_barang_bukti_select');
+    if (!el) return;
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = setInterval(() => {
+      if (typeof TomSelect !== 'undefined') {
+        clearInterval(interval);
+        new TomSelect(el, {
+          create: false,
+          sortField: [{ field: 'text', direction: 'asc' }],
+          allowEmptyOption: true,
+          maxOptions: 100,
+        });
+      } else {
+        attempts += 1;
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }
+    }, 100);
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initJenisBarangBuktiSelect();
+  } else {
+    document.addEventListener('DOMContentLoaded', initJenisBarangBuktiSelect);
+  }
+
+  // Initialize merek/model behavior: show select when jenis_barang_bukti == Handphone
+  function initMerekModelToggle() {
+    const jenisEl = document.getElementById('jenis_barang_bukti_select');
+    const merekFreeInput = document.getElementById('merek_free_input');
+    const merekHandphone = document.getElementById('merek_handphone');
+    const merekBrandSelect = document.getElementById('merek_brand_select');
+    const merekModelInput = document.getElementById('merek_model_input');
+    const merekCombined = document.getElementById('merek_model_combined');
+    if (!jenisEl || !merekFreeInput || !merekHandphone || !merekBrandSelect || !merekModelInput || !merekCombined) return;
+
+    // initialize TomSelect for merek select
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = setInterval(() => {
+      if (typeof TomSelect !== 'undefined') {
+        clearInterval(interval);
+        new TomSelect(merekBrandSelect, {
+          create: true,
+          sortField: [{ field: 'text', direction: 'asc' }],
+          allowEmptyOption: true,
+          maxOptions: 100
+        });
+      } else {
+        attempts += 1;
+        if (attempts >= maxAttempts) clearInterval(interval);
+      }
+    }, 100);
+
+    function updateCombined() {
+      if (!merekCombined) return;
+      if (jenisEl.value === 'Handphone') {
+        const brand = (merekBrandSelect.value || '').trim();
+        const model = (merekModelInput.value || '').trim();
+        merekCombined.value = (brand && model) ? `${brand} ${model}` : (brand || model || '');
+      } else {
+        merekCombined.value = (merekFreeInput.value || '').trim();
+      }
+    }
+
+    function toggle() {
+      if (jenisEl.value === 'Handphone') {
+        merekFreeInput.classList.add('d-none');
+        merekHandphone.classList.remove('d-none');
+        // ensure combined updated
+        updateCombined();
+      } else {
+        merekHandphone.classList.add('d-none');
+        merekFreeInput.classList.remove('d-none');
+        updateCombined();
+      }
+    }
+
+    jenisEl.addEventListener('change', toggle);
+    merekBrandSelect.addEventListener('change', updateCombined);
+    merekModelInput.addEventListener('input', updateCombined);
+    merekFreeInput.addEventListener('input', updateCombined);
+    // run once on init
+    toggle();
+  }
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initMerekModelToggle();
+  } else {
+    document.addEventListener('DOMContentLoaded', initMerekModelToggle);
+  }
+  // nomor sekarang dihasilkan server saat form disubmit (on save)
+  // Photo remove toggle: add/remove hidden inputs named remove_foto_<type>
+  function toggleRemovePhoto(type, filename, btn) {
+    const form = btn.closest('form');
+    if (!form) return;
+    const hiddenName = `remove_foto_${type}`;
+    // check if already marked
+    const existing = form.querySelector(`input[type=hidden][name="${hiddenName}"][value="${filename}"]`);
+    const container = btn.closest('.foto-item');
+    if (existing) {
+      // unmark
+      existing.remove();
+      if (container) container.style.opacity = '';
+      btn.textContent = 'Hapus';
+      btn.classList.remove('btn-secondary');
+      btn.classList.add('btn-danger');
+    } else {
+      // mark for removal
+      const inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = hiddenName;
+      inp.value = filename;
+      form.appendChild(inp);
+      if (container) container.style.opacity = '0.5';
+      btn.textContent = 'Batalkan';
+      btn.classList.remove('btn-danger');
+      btn.classList.add('btn-secondary');
+    }
+  }
+
+  // Create a replacement file input for a specific existing file. When user selects
+  // a file, mark the old filename for removal and leave the new file in the form
+  // under the same field name (e.g. 'fotos_bb') so server will save it as a new upload.
+  function createReplacementInput(type, filename, btn) {
+    const form = btn.closest('form');
+    if (!form) return;
+    // create an invisible file input with the same name used for uploads
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.name = `fotos_${type}`;
+    input.accept = '.jpg,.jpeg,.png,.webp';
+    input.style.display = 'none';
+    input.addEventListener('change', function() {
+      if (!this.files || this.files.length === 0) return;
+      // mark the old file for removal
+      const container = btn.closest('.foto-item');
+      const removeBtn = container ? container.querySelector('.remove-btn') : null;
+      if (removeBtn) toggleRemovePhoto(type, filename, removeBtn);
+      // update visible label to selected file name
+      const label = container ? container.querySelector('.foto-label') : null;
+      if (label) label.textContent = this.files[0].name;
+    });
+    form.appendChild(input);
+    input.click();
+  }
+
+  // ensure combined merek_model is updated before submit
+  (function attachSubmitSync(){
+    const form = document.querySelector('form');
+    if (!form) return;
+    form.addEventListener('submit', function(e){
+      try { updateCombined(); } catch (err) { /* ignore */ }
+    });
+  })();
+
+  async function autoFillFromIndexing() {
+    const inp = document.getElementById('fotos_indexing_input');
+    if (!inp || !inp.files || inp.files.length === 0) {
+      alert('Pilih satu file indexing terlebih dahulu.');
+      return;
+    }
+    const file = inp.files[0];
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/ocr', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        alert('OCR gagal: ' + (data.error || res.statusText));
+        return;
+      }
+      showOcrDisabledNotice(data.text || '');
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat melakukan OCR: ' + err);
+    }
+  }
+
+  async function autoFillPelaksanaanAkuisisiFromHash() {
+    const inp = document.getElementById('fotos_hash_input');
+    const fd = new FormData();
+    if (inp && inp.files && inp.files.length > 0) {
+      fd.append('file', inp.files[0]);
+    } else {
+      // Mode edit: pakai foto hash yang sudah tersimpan (bila ada).
+      const existing = inp && inp.closest('.col-12')
+        ? inp.closest('.col-12').querySelector('.foto-item[data-filename]')
+        : null;
+      if (existing && existing.getAttribute('data-filename')) {
+        fd.append('filename', existing.getAttribute('data-filename'));
+      } else {
+        alert('Pilih file Foto Nilai Hash terlebih dahulu.');
+        return;
+      }
+    }
+
+    const target = document.querySelector('[name="nilai_hash"]');
+    try {
+      const res = await fetch('/api/ocr', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        alert('OCR gagal: ' + (data.error || res.statusText) +
+          (data.hint ? '\n\n' + data.hint : ''));
+        return;
+      }
+      const parsed = (data.nilai_hash_text || '').trim();
+      if (!parsed) {
+        alert('Tidak ada nilai hash yang terbaca dari gambar. Silakan isi manual.' +
+          '\n\n--- Teks OCR mentah ---\n' + (data.text || '(kosong)'));
+        return;
+      }
+      if (target) {
+        if (target.value.trim() && !confirm('Field "Nilai Hash" sudah terisi. Timpa dengan hasil OCR?')) {
+          return;
+        }
+        target.value = parsed;
+      }
+      let msg = 'Nilai hash berhasil diisi dari OCR.\n\n' +
+        '⚠️ WAJIB diperiksa & dicocokkan dengan gambar — OCR dapat salah membaca ' +
+        'karakter (mis. 0/O, 1/l, 5/S, 8/B).';
+      if (data.warnings && data.warnings.length) {
+        msg += '\n\nPeringatan:\n- ' + data.warnings.join('\n- ');
+      }
+      alert(msg);
+    } catch (err) {
+      console.error(err);
+      alert('Terjadi kesalahan saat melakukan OCR: ' + err);
+    }
+  }
+
+  function showOcrDisabledNotice() {
+    alert('Parsing OCR sementara dimatikan. Silakan isi manual dulu.');
+  }
+
+  // Modal creation and handlers
+  function parseDateToISO(s) {
+    if (!s) return null;
+    s = s.trim();
+    // yyyy-mm-dd
+    let m = s.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})$/);
+    if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    // dd-mm-yyyy or dd/mm/yyyy
+    m = s.match(/^(\d{1,2})[\-\/](\d{1,2})[\-\/](\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    // fallback: try ISO parse
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().slice(0,10);
+    }
+    return null;
+  }
+</script>
+{% endblock %}
