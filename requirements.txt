@@ -1,0 +1,6 @@
+Flask==3.0.3
+docxtpl==0.16.8
+pytesseract==0.3.10
+Pillow==9.5.0
+winsdk==1.0.0b10
+google-cloud-vision==3.8.1
